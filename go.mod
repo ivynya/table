@@ -1,4 +1,4 @@
-module github.com/rodaine/table
+module github.com/ivynya/table
 
 go 1.14
 

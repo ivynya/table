@@ -4,6 +4,9 @@
 
 Package table provides a convenient way to generate tabular output of any data, primarily useful for CLI tools.
 
+> [!NOTE]
+> This is a fork of [rodaine/table](https://github.com/rodaine/table). It adds the ability to specify a custom formatter for any column, not just the first one. Use `.WithColumnFormatter(i int, f Formatter)` where `i` is less than the number of headers in the created table.
+
 ## Features
 
 - Accepts all data types (`string`, `int`, `interface{}`, everything!) and will use the `String() string` method of a type if available.

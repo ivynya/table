@@ -118,6 +118,7 @@ type WidthFunc func(string) int
 type Table interface {
 	WithHeaderFormatter(f Formatter) Table
 	WithFirstColumnFormatter(f Formatter) Table
+	WithColumnFormatter(i int, f Formatter) Table
 	WithPadding(p int) Table
 	WithWriter(w io.Writer) Table
 	WithWidthFunc(f WidthFunc) Table
@@ -132,7 +133,10 @@ type Table interface {
 // of columns is fixed at this point to len(columnHeaders) and the defined defaults
 // are set on the instance.
 func New(columnHeaders ...interface{}) Table {
-	t := table{header: make([]string, len(columnHeaders))}
+	t := table{
+		ColumnFormatters: make([]Formatter, len(columnHeaders)),
+		header:           make([]string, len(columnHeaders)),
+	}
 
 	t.WithPadding(DefaultPadding)
 	t.WithWriter(DefaultWriter)
@@ -148,12 +152,12 @@ func New(columnHeaders ...interface{}) Table {
 }
 
 type table struct {
-	FirstColumnFormatter Formatter
-	HeaderFormatter      Formatter
-	Padding              int
-	Writer               io.Writer
-	Width                WidthFunc
-	HeaderSeparatorRune  rune
+	ColumnFormatters    []Formatter
+	HeaderFormatter     Formatter
+	Padding             int
+	Writer              io.Writer
+	Width               WidthFunc
+	HeaderSeparatorRune rune
 
 	header []string
 	rows   [][]string
@@ -171,7 +175,15 @@ func (t *table) WithHeaderSeparatorRow(r rune) Table {
 }
 
 func (t *table) WithFirstColumnFormatter(f Formatter) Table {
-	t.FirstColumnFormatter = f
+	return t.WithColumnFormatter(0, f)
+}
+
+func (t *table) WithColumnFormatter(i int, f Formatter) Table {
+	if i < 0 || i >= len(t.header) {
+		return t
+	}
+
+	t.ColumnFormatters[i] = f
 	return t
 }
 
@@ -289,8 +301,10 @@ func (t *table) printHeader(format string) {
 func (t *table) printRow(format string, row []string) {
 	vals := t.applyWidths(row, t.widths)
 
-	if t.FirstColumnFormatter != nil {
-		vals[0] = t.FirstColumnFormatter("%s", vals[0])
+	for i, f := range t.ColumnFormatters {
+		if f != nil {
+			vals[i] = f("%s", vals[i])
+		}
 	}
 
 	fmt.Fprintf(t.Writer, format, vals...)
